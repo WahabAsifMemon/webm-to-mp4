@@ -37,10 +37,9 @@ def convert():
             mp4_filename = os.path.splitext(webm_filename)[0] + '.mp4'
             mp4_file_path = os.path.join(app.config['UPLOAD_FOLDER'], mp4_filename)
 
-            ffmpeg_path = 'C:\\ffmpeg\\bin\\ffmpeg.exe'
-
+            # Use 'ffmpeg' directly without specifying a full path
             command = [
-                ffmpeg_path, '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
+                'ffmpeg', '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
             ]
 
             subprocess.run(command, check=True)

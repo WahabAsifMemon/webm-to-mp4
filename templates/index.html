@@ -1,0 +1,188 @@
+<!--<!DOCTYPE html>-->
+<!--<html lang="en">-->
+<!--<head>-->
+<!--    <meta charset="UTF-8">-->
+<!--    <meta name="viewport" content="width=device-width, initial-scale=1.0">-->
+<!--    <title>WebM to MP4 Converter</title>-->
+<!--    <style>-->
+<!--        body {-->
+<!--            font-family: Arial, sans-serif;-->
+<!--            background-color: #f4f4f9;-->
+<!--            color: #333;-->
+<!--            display: flex;-->
+<!--            flex-direction: column;-->
+<!--            justify-content: center;-->
+<!--            align-items: center;-->
+<!--            height: 100vh;-->
+<!--            margin: 0;-->
+<!--        }-->
+<!--        h1 {-->
+<!--            color: #5a67d8;-->
+<!--        }-->
+<!--        form {-->
+<!--            background: #fff;-->
+<!--            padding: 20px;-->
+<!--            border-radius: 8px;-->
+<!--            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);-->
+<!--            width: 300px;-->
+<!--            text-align: center;-->
+<!--        }-->
+<!--        input[type="file"] {-->
+<!--            border: 2px dashed #5a67d8;-->
+<!--            padding: 20px;-->
+<!--            width: calc(100% - 40px);-->
+<!--            cursor: pointer;-->
+<!--            border-radius: 8px;-->
+<!--            transition: background-color 0.3s ease;-->
+<!--        }-->
+<!--        input[type="file"]:hover {-->
+<!--            background-color: #ebedf7;-->
+<!--        }-->
+<!--        button {-->
+<!--            background-color: #5a67d8;-->
+<!--            color: #fff;-->
+<!--            border: none;-->
+<!--            padding: 10px 20px;-->
+<!--            border-radius: 5px;-->
+<!--            cursor: pointer;-->
+<!--            font-size: 16px;-->
+<!--                margin-top: 10px;-->
+<!--            transition: background-color 0.3s ease;-->
+<!--        }-->
+<!--        button:hover {-->
+<!--            background-color: #434190;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--    <h1>Upload a WebM File</h1>-->
+<!--    <form action="/convert" method="post" enctype="multipart/form-data">-->
+<!--        <input type="file" name="file" accept=".webm" required>-->
+<!--        <button type="submit">Upload</button>-->
+<!--    </form>-->
+<!--</body>-->
+<!--</html>-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebM to MP4 Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #5a67d8;
+        }
+        form {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+            text-align: center;
+        }
+        input[type="file"] {
+            border: 2px dashed #5a67d8;
+            padding: 20px;
+            width: calc(100% - 40px);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+        input[type="file"]:hover {
+            background-color: #ebedf7;
+        }
+        button {
+            background-color: #5a67d8;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+                margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #434190;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #5a67d8;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload a WebM File</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" accept=".webm" required>
+        <button type="button" onclick="uploadFile()">Upload</button>
+    </form>
+    <div class="progress-bar" id="progressBar">
+        <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">0%</div>
+    </div>
+
+    <script>
+        function uploadFile() {
+            var fileInput = document.getElementById('fileInput');
+            var file = fileInput.files[0];
+            if (!file) {
+                alert('Please select a file.');
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            var progressBarFill = document.getElementById('progressBarFill');
+            var progressBar = document.getElementById('progressBar');
+
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    var percentComplete = (event.loaded / event.total) * 100;
+                    progressBarFill.style.width = percentComplete + '%';
+                    progressBarFill.innerText = Math.round(percentComplete) + '%';
+                }
+            };
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        window.location.href = response.mp4_file_url;
+                    } else {
+                        alert('Error uploading file.');
+                    }
+                }
+            };
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            xhr.open('POST', '/convert');
+            xhr.send(formData);
+        }
+    </script>
+</body>
+</html>

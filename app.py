@@ -57,7 +57,6 @@ def convert():
 
         # Merge chunks
         with open(webm_file_path, 'wb') as webm_file:
-            # Corrected sorting and joining of chunks
             chunks = sorted(os.listdir(chunk_dir), key=lambda x: int(x.split('_')[0]))
             for chunk in chunks:
                 chunk_path = os.path.join(chunk_dir, chunk)

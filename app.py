@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 import os
 import subprocess
 import time
+import traceback  # Import traceback module
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -42,7 +43,12 @@ def convert():
                 'ffmpeg', '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
             ]
 
-            subprocess.run(command, check=True)
+            # Use subprocess.Popen instead of subprocess.run to capture error output
+            process = subprocess.Popen(command, stderr=subprocess.PIPE)
+            output, error = process.communicate()
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, command, output=output, stderr=error)
 
             end_time = time.time()
             conversion_time = end_time - start_time
@@ -52,8 +58,12 @@ def convert():
             return jsonify({"mp4_file_url": mp4_file_url, "conversion_time": conversion_time})
 
         except subprocess.CalledProcessError as e:
+            # Print full error message to console
+            traceback.print_exception(type(e), e, e.__traceback__)
             return jsonify({"error": "FFmpeg error during conversion: " + str(e)}), 500
         except Exception as e:
+            # Print full error message to console
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
 @app.route('/download/<filename>', methods=['GET'])

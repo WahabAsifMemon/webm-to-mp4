@@ -37,7 +37,6 @@ def convert():
             mp4_filename = os.path.splitext(webm_filename)[0] + '.mp4'
             mp4_file_path = os.path.join(app.config['UPLOAD_FOLDER'], mp4_filename)
 
-            # Use 'ffmpeg' directly without specifying a full path
             command = [
                 'ffmpeg', '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
             ]
@@ -46,6 +45,8 @@ def convert():
 
             end_time = time.time()
             conversion_time = end_time - start_time
+
+            os.remove(webm_file_path)  # Remove the original file after conversion
 
             mp4_file_url = request.url_root + 'download/' + mp4_filename
 

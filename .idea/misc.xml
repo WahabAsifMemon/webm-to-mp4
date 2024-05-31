@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="Python 3.11 (webm-to-mp4)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (webm-to-mp4)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (converter)" project-jdk-type="Python SDK" />
 </project>

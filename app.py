@@ -4,6 +4,7 @@ import subprocess
 import time
 import shutil
 from werkzeug.utils import secure_filename
+import logging
 
 app = Flask(__name__)
 
@@ -16,6 +17,9 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 if not os.path.exists(CHUNK_FOLDER):
     os.makedirs(CHUNK_FOLDER)
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def index():
@@ -38,6 +42,7 @@ def upload_chunk():
 
         return jsonify({"status": "Chunk uploaded"}), 200
     except Exception as e:
+        logging.error(f"Error uploading chunk: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/convert', methods=['POST'])
@@ -72,6 +77,7 @@ def convert():
 
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if result.returncode != 0:
+            logging.error(f"FFmpeg error: {result.stderr.decode()}")
             raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
 
         end_time = time.time()
@@ -84,8 +90,10 @@ def convert():
         return jsonify({"mp4_file_url": mp4_file_url, "conversion_time": conversion_time})
 
     except subprocess.CalledProcessError as e:
+        logging.error(f"FFmpeg error during conversion: {e.stderr.decode()}")
         return jsonify({"error": f"FFmpeg error during conversion: {e.stderr.decode()}"}), 500
     except Exception as e:
+        logging.error(f"Error during conversion: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/download/<filename>', methods=['GET'])

@@ -2,60 +2,86 @@ from flask import Flask, render_template, request, jsonify, send_file
 import os
 import subprocess
 import time
+import shutil
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = 'uploads'
+CHUNK_FOLDER = 'chunks'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['CHUNK_FOLDER'] = CHUNK_FOLDER
 
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(CHUNK_FOLDER):
+    os.makedirs(CHUNK_FOLDER)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/upload_chunk', methods=['POST'])
+def upload_chunk():
+    chunk = request.files['chunk']
+    upload_id = request.form['uploadId']
+    chunk_index = request.form['chunkIndex']
+    filename = secure_filename(request.form['filename'])
+
+    chunk_dir = os.path.join(app.config['CHUNK_FOLDER'], upload_id)
+    if not os.path.exists(chunk_dir):
+        os.makedirs(chunk_dir)
+
+    chunk_path = os.path.join(chunk_dir, f'{chunk_index}_{filename}')
+    chunk.save(chunk_path)
+
+    return jsonify({"status": "Chunk uploaded"}), 200
+
 @app.route('/convert', methods=['POST'])
 def convert():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
+    data = request.get_json()
+    upload_id = data['uploadId']
+    filename = secure_filename(data['filename'])
 
-    file = request.files['file']
+    chunk_dir = os.path.join(app.config['CHUNK_FOLDER'], upload_id)
+    webm_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
+    # Merge chunks
+    with open(webm_file_path, 'wb') as webm_file:
+        chunks = sorted(os.listdir(chunk_dir), key=lambda x: int(x.split('_')[0]))
+        for chunk in chunks:
+            chunk_path = os.path.join(chunk_dir, chunk)
+            with open(chunk_path, 'rb') as chunk_file:
+                shutil.copyfileobj(chunk_file, webm_file)
 
-    if file:
-        try:
-            webm_filename = secure_filename(file.filename)
-            webm_file_path = os.path.join(app.config['UPLOAD_FOLDER'], webm_filename)
-            file.save(webm_file_path)
+    # Remove chunk directory after merging
+    shutil.rmtree(chunk_dir)
 
-            start_time = time.time()
+    try:
+        start_time = time.time()
 
-            mp4_filename = os.path.splitext(webm_filename)[0] + '.mp4'
-            mp4_file_path = os.path.join(app.config['UPLOAD_FOLDER'], mp4_filename)
+        mp4_filename = os.path.splitext(filename)[0] + '.mp4'
+        mp4_file_path = os.path.join(app.config['UPLOAD_FOLDER'], mp4_filename)
 
-            command = [
-                'ffmpeg', '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
-            ]
+        command = [
+            'ffmpeg', '-i', webm_file_path, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', '-c:a', 'aac', '-strict', 'experimental', mp4_file_path
+        ]
 
-            subprocess.run(command, check=True)
+        subprocess.run(command, check=True)
 
-            end_time = time.time()
-            conversion_time = end_time - start_time
+        end_time = time.time()
+        conversion_time = end_time - start_time
 
-            os.remove(webm_file_path)  # Remove the original file after conversion
+        os.remove(webm_file_path)  # Remove the original file after conversion
 
-            mp4_file_url = request.url_root + 'download/' + mp4_filename
+        mp4_file_url = request.url_root + 'download/' + mp4_filename
 
-            return jsonify({"mp4_file_url": mp4_file_url, "conversion_time": conversion_time})
+        return jsonify({"mp4_file_url": mp4_file_url, "conversion_time": conversion_time})
 
-        except subprocess.CalledProcessError as e:
-            return jsonify({"error": "FFmpeg error during conversion: " + str(e)}), 500
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": "FFmpeg error during conversion: " + str(e)}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/download/<filename>', methods=['GET'])
 def download(filename):
